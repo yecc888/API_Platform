@@ -279,7 +279,7 @@ class CaseGroup(models.Model):
         db_table = 'case_group'
 
     def __str__(self):
-        return self.n
+        return self.name
 
 
 class CaseManagerment(BaseModel):
@@ -312,6 +312,7 @@ class CaseManagerment(BaseModel):
                                     verbose_name='创建人', help_text='创建人')
     comment = models.TextField(default='', blank=True, null=True, verbose_name='评论/描述',
                                help_text='评论/描述')
+    case_result = models.CharField(max_length=126, verbose_name='用例结果', blank=True, null=True)
 
     class Meta:
         verbose_name = '用例管理'
@@ -343,6 +344,7 @@ class CaseApi(models.Model):
 
     case = models.ForeignKey(CaseManagerment, null=True, blank=True, on_delete=models.SET_NULL,
                              verbose_name='所属用例', related_name='case_api')
+    api = models.ForeignKey('self', verbose_name='可能关联的api', on_delete=models.SET_NULL, null=True)
     name = models.CharField(max_length=20, default='', null=True, blank=True, verbose_name='接口名称', help_text='接口名称')
     url = models.CharField(max_length=100, default='', null=True, blank=True, verbose_name='接口路径', help_text='接口路径')
     protocol = models.CharField(max_length=10, default='HTTP', choices=PROTOCOL_TPYE, null=True, blank=True,
@@ -355,10 +357,8 @@ class CaseApi(models.Model):
     status = models.SmallIntegerField(default=1, choices=INTTERFACE_STATUS,
                                       verbose_name='接口状态', null=True, blank=True,
                                       help_text='接口状态')
-    response_header = models.TextField(default='', null=True, blank=True, verbose_name='接口返回header')
-    response_body = models.TextField(default='', null=True, blank=True, verbose_name='接口返回body')
-    result_status = models.CharField(max_length=126, null=True, blank=True, verbose_name='接口执行结果')
     response_time = models.FloatField(null=True, blank=True, verbose_name='接口响应时间')
+    count = models.IntegerField(verbose_name='接口执行次数', default=0)
 
     class Meta:
         verbose_name = '用例接口'
@@ -367,6 +367,31 @@ class CaseApi(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class CaseApiResponse(models.Model):
+    """
+    用例接口返回结果
+    """
+    RESULT_STATUS = (('success', '成功'),
+                     ('danger', '失败'))
+    case_api = models.ForeignKey(CaseApi, null=True, blank=True, verbose_name='所属接口',
+                                 on_delete=models.SET_NULL, related_name="response_case_api")
+    status_code = models.IntegerField(null=True, blank=True, verbose_name='状态码')
+    response_status = models.CharField(max_length=10, null=True, blank=True, verbose_name='返回状态')
+    response_header = models.TextField(null=True, blank=True, verbose_name='服务器响应头')
+    response_content = models.TextField(null=True, blank=True, verbose_name='接口返回数据')
+    response_time = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name='接口响应时间')
+    create_time = models.DateTimeField(auto_now_add=True, null=True, verbose_name='创建时间', help_text='创建时间')
+
+    class Meta:
+        verbose_name = '用例接口返回结果'
+        verbose_name_plural = verbose_name
+        db_table = "case_api_response"
+        ordering = ('-create_time',)
+
+    def __str__(self):
+        return self.response_status
 
 
 class CheckAndExtractResult(models.Model):
@@ -378,23 +403,16 @@ class CheckAndExtractResult(models.Model):
                   (4, 'Body content'), (5, 'Duration (ms)'))
 
     case_api = models.ForeignKey(CaseApi, null=True, blank=True, verbose_name='所属接口',
-                                related_name="case_check", on_delete=models.CASCADE)
+                                 related_name="case_check", on_delete=models.CASCADE)
     check_type = models.SmallIntegerField(choices=CHECK_TYPE, null=True, blank=True, verbose_name='检查点类型')
     assert_type = models.SmallIntegerField(null=True, blank=True, verbose_name='断言方式')
     check_data = models.TextField(default='', null=True, blank=True, verbose_name='期望值')
     actual_data = models.TextField(default='', null=True, blank=True, verbose_name='实际值')
     check_result = models.TextField(default='', null=True, blank=True, verbose_name='检查结果')
     check_jsonpath = models.TextField(default='', null=True, blank=True,
-                                              verbose_name='json path')
+                                      verbose_name='json path')
     check_header_name = models.TextField(default='', null=True, blank=True,
-                                              verbose_name='header名称')
-
-    extract_type = models.CharField(max_length=126, null=True, blank=True, verbose_name='参数提取方式')
-    extract_header_name = models.TextField(default='', null=True, blank=True, verbose_name='提取header名称')
-    extract_jsonpath = models.TextField(default='', null=True, blank=True, verbose_name='提取jsonpath路径')
-    extract_data = models.TextField(default='', null=True, blank=True, verbose_name='提取参数')
-    extract_result = models.TextField(default='', null=True, blank=True, verbose_name='参数提取值')
-    references_field = models.CharField(max_length=128,verbose_name='需要引用的数据')
+                                         verbose_name='header名称')
 
     class Meta:
         verbose_name = '用例接口检查点'
@@ -405,27 +423,40 @@ class CheckAndExtractResult(models.Model):
         return self.actual_data
 
 
+class ExtractResult(models.Model):
+    """
+    接口返回数据提取
+    """
+    case_api = models.ForeignKey(CaseApi, null=True, blank=True, verbose_name='所属接口',
+                                 related_name="case_extract", on_delete=models.CASCADE)
+    extract_type = models.CharField(max_length=126, null=True, blank=True, verbose_name='参数提取方式')
+    extract_header_name = models.TextField(default='', null=True, blank=True, verbose_name='提取header名称')
+    extract_jsonpath = models.TextField(default='', null=True, blank=True, verbose_name='提取jsonpath路径')
+    extract_data = models.TextField(default='', null=True, blank=True, verbose_name='提取参数')
+    extract_result = models.TextField(default='', null=True, blank=True, verbose_name='参数提取值')
+    references_field = models.CharField(max_length=128, verbose_name='需要引用的数据')
 
-# class ExtractResult(models.Model):
-#     """
-#     接口返回数据提取
-#     """
-#     case_api = models.ForeignKey(CaseApi, null=True, blank=True, verbose_name='所属接口',
-#                                 related_name="case_extract", on_delete=models.CASCADE)
-#     extract_type = models.CharField(max_length=126, null=True, blank=True, verbose_name='参数提取方式')
-#     json_path = models.TextField(default='', null=True, blank=True, verbose_name='jsonpath路径')
-#     extract_data = models.TextField(default='', null=True, blank=True, verbose_name='提取参数')
-#     extract_result = models.TextField(default='', null=True, blank=True, verbose_name='参数提取值')
-#     references_field = models.CharField(max_length=128,verbose_name='需要引用的数据')
-#
-#     class Meta:
-#         verbose_name = '用例接口数据提取'
-#         verbose_name_plural = verbose_name
-#         db_table = 'extract_result'
-#
-#     def __str__(self):
-#         return self.extract_result
+    class Meta:
+        verbose_name = '用例接口数据提取'
+        verbose_name_plural = verbose_name
+        db_table = 'extract_result'
 
+    def __str__(self):
+        return self.extract_result
+
+
+class CaseReport(models.Model):
+    """
+    用例报告
+    """
+    case = models.ForeignKey(CaseManagerment, null=True, blank=True, verbose_name='所属接口',
+                             related_name="case_report", on_delete=models.CASCADE)
+    total_time = models.CharField(max_length=10, verbose_name='用例运行时间')
+    total_cases = models.SmallIntegerField(verbose_name='用例个数')
+    success_num = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name='成功个数')
+    fail_num = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name='失败个数')
+    case_status = models.CharField(max_length=126, null=True, blank=True, verbose_name='用例状态')
+    case_pass_rate = models.FloatField(verbose_name='测试通过率')
 
 
 class CaseStepHeaders(models.Model):
@@ -433,7 +464,7 @@ class CaseStepHeaders(models.Model):
     接口请求header
     """
     case_api = models.ForeignKey(CaseApi, null=True, blank=True, verbose_name='所属接口',
-                                related_name="case_headers", on_delete=models.CASCADE)
+                                 related_name="case_headers", on_delete=models.CASCADE)
     name = models.CharField(max_length=126, default='', blank=True, verbose_name='请求参数名称')
     value = models.CharField(max_length=126, default='', blank=True, help_text='参数值')
 
@@ -453,7 +484,7 @@ class CaseStepParams(models.Model):
     """
 
     case_api = models.ForeignKey(CaseApi, null=True, on_delete=models.SET_NULL, blank=True, verbose_name='所属接口',
-                                related_name="case_paramars")
+                                 related_name="case_paramars")
     name = models.CharField(max_length=200, default='', null=True, blank=True, verbose_name='参数名称', help_text='参数名称')
     value = models.TextField(max_length=2048, default='', null=True, blank=True, verbose_name='参数值', help_text='参数值')
     raw = models.TextField(max_length=1024, default='', blank=True, verbose_name='raw格式')
@@ -463,9 +494,6 @@ class CaseStepParams(models.Model):
         verbose_name_plural = verbose_name
         db_table = 'case_step_parameters'
         unique_together = ('name', 'case_api')
-
-
-
 
 #
 #
