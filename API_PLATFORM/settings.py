@@ -13,13 +13,12 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 import os
 import sys
 import datetime
-
+import socket
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 sys.path.insert(0, os.path.join(BASE_DIR, 'extra_apps'))
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
@@ -27,7 +26,144 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'extra_apps'))
 SECRET_KEY = '*87=gx$6#!os&6r7lr)$@fh@vjurv49&fc7(%i_tpo&fh)^-97'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
+# 开发环境打开调试
+if socket.gethostname() == '91CGB4AP84OZ8HI':
+    DEBUG = True
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': "api_testing",
+            'USER': 'root',
+            'PASSWORD': "root",  # 本地
+            # 'PASSWORD': "",  # 线上
+            'HOST': "127.0.0.1",
+            # 'HOST': "39.106.176.210",
+            'OPTIONS': {'init_command': 'SET default_storage_engine=INNODB;'}
+        }
+    }
+
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': "api_testing",
+            'USER': 'root',
+            'PASSWORD': "",  # 线上
+            'HOST': "39.106.176.210",
+            'OPTIONS': {'init_command': 'SET default_storage_engine=INNODB;'}
+        }
+    }
+    DEBUG = False
+# # 日志配置
+log_path = os.path.join(BASE_DIR,'log')
+
+if not os.path.exists(log_path):
+    os.mkdir(log_path)
+all_log = os.path.join(log_path,'all.log')
+err_log = os.path.join(log_path,'error.log')
+db_log = os.path.join(log_path,'db.log')
+defa_log = os.path.join(log_path,'defa.log')
+"""
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+        'standard': {
+            'format': '%(asctime)s [%(threadName)s:%(thread)d] [%(name)s:%(lineno)d] [%(levelname)s]- %(message)s'
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
+        'default': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': defa_log,  # 或者直接写路径：'c:\logs\all.log',
+            'maxBytes': 1024 * 1024 * 50,  # 50 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+        'file': {
+            'level': 'NOTSET',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': all_log,  # 或者直接写路径：'c:\logs\all.log',
+            'maxBytes': 1024 * 1024 * 50,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
+        'dbfile': {
+            'level': 'NOTSET',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': db_log,  # 或者直接写路径：'c:\logs\all.log',
+            'maxBytes': 1024 * 1024 * 50,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
+        'error': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': err_log,  # 或者直接写路径：'c:\logs\all.log',
+            'maxBytes': 1024 * 1024 * 50,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
+        # 邮件日志发送配置
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'formatter': 'standard',
+            'filters': ['require_debug_false']
+        }
+    },
+    # DEBUG(测试环境) CRITICAL(项目崩溃)  ERROR(抛出异常未被捕获) WARNING(例如403) INFO(系统表现相关)
+    'loggers': {
+        'django': {
+            'handlers': ["file", 'error','console'],
+            'level': 'NOTSET',
+            'propagate': False
+        },
+        '': {
+            'handlers': ["file", 'error','console'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        # 'django': {
+        #   'handlers': ['default'],
+        #   'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+        # },
+        'django.request': {
+            'handlers': ['error'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['dbfile'], # 指定file handler处理器，表示只写入到文件
+            'level':'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+"""
+
+APPEND_SLASH = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -42,7 +178,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users.apps.UsersConfig',
     'DjangoUeditor',
-    'base_config.apps.BaseConfigConfig',
+    'base.apps.BaseConfig',
     'cases.apps.CasesConfig',
     'django.contrib.admin',
     'crispy_forms',
@@ -51,18 +187,24 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework.authtoken',
     'django_filters',
+    'rest_framework_swagger',
+    'drf_yasg',
+    'django_apscheduler',
+    'debug_toolbar.apps.DebugToolbarConfig',
 ]
 
 MIDDLEWARE = [
 
-    'corsheaders.middleware.CorsMiddleware', # 解决跨越问题
+    'corsheaders.middleware.CorsMiddleware',  # 解决跨越问题
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True  # 解决跨域问题
@@ -89,7 +231,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'API_PLATFORM.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
@@ -100,19 +241,8 @@ WSGI_APPLICATION = 'API_PLATFORM.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': "api_testing",
-        'USER': 'root',
-        'PASSWORD': "root",
-        'HOST': "127.0.0.1",
-        'OPTIONS': { 'init_command': 'SET default_storage_engine=INNODB;' }
-    }
-}
 
-
- # 解决跨越问题
+# 解决跨越问题
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_ALLOW_ALL = True
 # CORS_ORIGIN_WHITELIST = (
@@ -161,7 +291,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
@@ -175,7 +304,6 @@ USE_L10N = True
 
 USE_TZ = False
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
@@ -185,30 +313,63 @@ STATIC_URL = '/static/'
 # 新增2
 # Add for vue.js
 STATICFILES_DIRS = [
-  os.path.join(BASE_DIR, "frontend/dist/static")
+    os.path.join(BASE_DIR, "frontend/dist/static")
 ]
 
 # APPEND_SLASH=False
 
+MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 REST_FRAMEWORK = {
-#     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-#     'PAGE_SIZE': 10,
-'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.AutoSchema',
-'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    #     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    #     'PAGE_SIZE': 10,
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.AutoSchema',
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
 
-        'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
-        'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework.authentication.SessionAuthentication',
-                                           'rest_framework_jwt.authentication.JSONWebTokenAuthentication',)
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
+    'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework.authentication.SessionAuthentication',
+                                       # 'rest_framework.authentication.BasicAuthentication',
+                                       'rest_framework_jwt.authentication.JSONWebTokenAuthentication',),
+    # 限速设置
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',  # 未登陆用户
+        'rest_framework.throttling.UserRateThrottle'  # 登陆用户
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '3/second',  # 每秒可以请求3次  second, minute, hour or day
+        'user': '100/second'  # 每秒可以请求五次
+    }
 }
 
-
 JWT_AUTH = {
+    # JWT 过期时间
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    # JWT验证前缀
     'JWT_AUTH_HEADER_PREFIX': 'JWT',
-    'JWT_RESPONSE_PAYLOAD_HANDLER': 'users.utils.jwt_response_payload_handler'}
+    # JWT登录成功后返回信息配置
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'users.utils.jwt_response_payload_handler',
+    # JWT密钥
+    'JWT_GET_USER_SECRET_KEY': 'users.utils.jwt_get_secret_key'}
 
 AUTHENTICATION_BACKENDS = ['users.views.CoustomBackend']
 
 REGEX_MOBILE = "^1[358]\d{9}$|^147\d{8}$|^176\d{8}$"
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Basic': {
+            'type': 'basic'
+        }
+    },
+    'LOGOUT_URL': 'accounts/logout/',
+}
+
+# for debug-tool
+INTERNAL_IPS = [
+    # ...
+    '127.0.0.1',
+    # ...
+]
+
+DEBUG_TOOLBAR_PATCH_SETTINGS = False

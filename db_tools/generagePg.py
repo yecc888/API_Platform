@@ -7,6 +7,8 @@ import datetime,time
 import multiprocessing
 import re
 from API_PLATFORM.settings import REGEX_MOBILE
+from db_tools.wsgData import doExcel
+
 def pase():
     conn = psycopg2.connect(database='yxd-test', user='postgres',
                             password='wsg@pg#', host='123.57.63.39', port='5432')
@@ -70,6 +72,102 @@ def updata():
     conn.close()
 
 
+def generate_rule(fiels,sheet):
+    conn = psycopg2.connect(database='aoqiwei', user='postgres',
+                            password='wsg@pg#', host='47.93.99.61', port='5432')
+    cur = conn.cursor()
+    e = doExcel(fiels,sheet)
+    datas = e.read_from_excel()[1]
+    for da in datas:
+        ids = int(da[0])
+        target_rule_id = int(da[1])
+        predict_value = str(da[2])
+        reach_value = str(da[3])
+        reach_rate = da[4]
+        store_id = int(da[5])
+        times = da[6]
+        times = times.date()
+        modify_time = datetime.datetime.utcnow()
+        create_time = datetime.datetime.utcnow()
+        s = datetime.datetime.now().date()
+        times = times.strftime('%Y-%m-%d')
+        # times = datetime.datetime.strptime(times,'%Y-%m-%d')
+        # data1 = "INSERT INTO target_reach(id, target_rule_id, predict_value, reach_value, reach_rate, reason, brand_id, " \
+        #     "area_id, store_id, market_separation_id, state, create_time, createby, modify_time, modifyby, delete_time, " \
+        #     "deleteby, create_user, modify_user, delete_user) VALUES ({}, {}, {}, {}, {:.2f}, NULL, 1280451715635679234, 1270621473534447618, {}, NULL, 1, {}, 1270647914993094657,'2020-01-01' , 1270647914993094657, NULL, NULL, '奥森店店长', '奥森店店长', NULL)".format(ids,target_rule_id,predict_value,reach_value,reach_rate,
+        #                                                  store_id,times)
+
+        data2 = "INSERT INTO target_reach(id, target_rule_id, predict_value, reach_value, reach_rate, reason, brand_id, " \
+            "area_id, store_id, market_separation_id, state, create_time, createby, modify_time, modifyby, delete_time, " \
+            "deleteby, create_user, modify_user, delete_user) VALUES (%(ids)s, %(target_rule_id)s, %(predict_value)s, %(reach_value)s, %(reach_rate)s, NULL, 1280451715635679234, 1270621473534447618, %(store_id)s, NULL, 1, %(create_time)s, 1270647914993094657, %(modify_time)s, 1270647914993094657, NULL, NULL, '奥森店店长', '奥森店店长', NULL)"
+
+        cur.execute(data2,{'ids': ids, 'target_rule_id':target_rule_id,
+                           'predict_value': predict_value,
+                           'reach_value': reach_value,
+                           'reach_rate': reach_rate,
+                           'store_id': store_id,
+                           'create_time': times,
+                           'modify_time': times})
+        conn.commit()
+    cur.close()
+    conn.close()
+
+
+def pgdb(dbname):
+    '''
+    连接pg数据库
+    :param dbname: 数据库名称
+    :return:
+    '''
+    return psycopg2.connect(database=dbname, user='postgres',
+                            password='wsg@pg#', host='47.93.99.61', port='5432')
+
+
+def upper_level(username,shopname):
+
+    try:
+        conn = pgdb('wsg')
+        cur = conn.cursor()
+        shopperid_sql = "SELECT id from users WHERE name= %(username)s and role_id = '1311198606765658114'"
+        storeid_sql = "SELECT id FROM store WHERE name = %(shopname)s"
+        cur.execute(shopperid_sql,{'username':username})
+        shopperid = cur.fetchone()
+        if shopperid:
+            shopperid = cur.fetchone()[0]
+            cur.execute(storeid_sql,{'shopname':shopname})
+            storeid = cur.fetchone()[0]
+            u1 = "SELECT id from users where id in ( SELECT user_id from user_store WHERE store_id= %(storeid)s and user_id<> %(shopperid)s) and role_id<>'1311198606765658114'"
+            cur.execute(u1,{'storeid':storeid,'shopperid':shopperid})
+            usersid =  cur.fetchall()
+            updated_sql = "UPDATE users set parent_id = %(shopperid)s WHERE id = %(id)s"
+
+            for user in usersid:
+                sql_id = user[0]
+                cur.execute(updated_sql,{'shopperid':shopperid,'id':sql_id})
+                conn.commit()
+    except psycopg2.DatabaseError as ex:
+        pass
+    finally:
+        cur.close()
+        conn.close()
+
+
+def com_shop(shopname):
+    conn = pgdb('wsg')
+    cur = conn.cursor()
+    storeid_sql = "SELECT id FROM store WHERE name = %(shopname)s"
+    cur.execute(storeid_sql, {'shopname': shopname})
+    shopperid = cur.fetchone()
+    count  = 0
+    if shopperid:
+        count += 1
+    return count
+
+
+
+
+
+
 
 
 
@@ -115,13 +213,24 @@ def run_job():
 
 
 if __name__ == "__main__":
-    print(re.match(REGEX_MOBILE,'13584444664'))
-    print(re.match(r"^1[35789]\d{9}$", '135875594955'))
-
+    # print(re.match(REGEX_MOBILE,'13584444664'))
+    # print(re.match(r"^1[35789]\d{9}$", '135875594955'))
+    import logging
     # updata()
-    # statrt_time = int(time.time())
+    statrt_time = datetime.datetime.now()
     # for i in range(1000,5000):
     #     ids = 1196958114107770000 + i
     #     ids1 = 1196958114107970000 + i
     #     connect_pg(ids,random.randint(1,3))
     #     connect_pg1(ids1,random.randint(1,3))
+    fiels = 'C:\\Users\Administrator\Desktop\data5.xlsx'
+    # e = doExcel(fiels,'Sheet1')
+    # s = e.read_from_excel()
+
+    # generate_rule(fiels,'tangshi')
+    # generate_rule(fiels,'waimai')
+    # generate_rule(fiels,'huiyuan')
+    # delt = (datetime.datetime.now()-statrt_time).seconds
+    # print(delt)
+    upper_level('符史豪', '奥体东门')
+

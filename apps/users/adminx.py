@@ -14,7 +14,7 @@
 import xadmin
 from xadmin import views
 # from .models import VerifyCode
-from .models import UserProfile
+from .models import UserProfile, useInfo, sidebarInfo
 
 
 class BaseSetting(object):
@@ -32,7 +32,17 @@ class UsersAdmin(object):
     list_display = ['name', 'mobile', "create_time"]
 
 
+class UserinfoAdmin(object):
+    list_display = ['icon', 'menus']
+
+
+class SidebarInfoAdmin(object):
+    list_display = ['parentId', 'title', 'level', 'sort', 'name', 'icon','hidden', "createTime"]
+
+
 xadmin.site.unregister(UserProfile)
 xadmin.site.register(UserProfile, UsersAdmin)
 xadmin.site.register(views.BaseAdminView, BaseSetting)
 xadmin.site.register(views.CommAdminView, GlobalSettings)
+xadmin.site.register(useInfo, UserinfoAdmin)
+xadmin.site.register(sidebarInfo, SidebarInfoAdmin)
