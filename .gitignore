@@ -14,3 +14,4 @@ apps/cases/migrations/__pycache__
 apps/users/__pycache__
 apps/users/migrations/__pycache__
 extra_apps/xadmin/__pycache__
+log/*
