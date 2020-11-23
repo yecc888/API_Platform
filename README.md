@@ -1,4 +1,4 @@
-#API_PLATFORM是什么？
+# API_PLATFORM是什么？
 一款接口自动化测试管理平台，为了降低自动化测试的上手门槛、维护成本，提高测试效率、项目质量，帮助测试团队高效协作，基于以上目标开发接口测试平台；主要有基本信息管理、接口管理、用例管理、定时任务等功能模块组成。
 
 **开源协议**：[GNU General Public License v2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
