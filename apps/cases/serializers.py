@@ -4,16 +4,28 @@ __date__ = '2019/12/31 20:40'
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.db import transaction
-from .models import ApiManagerment, ApiParams, AllHeaders, ApiResponse, \
-    Headers,CustomParameters, ApiMock, CaseManagerment,CaseApi,CaseGroup
-from base.models import ModelManager, EnvManager
-import threading
 import json
 from rest_framework.utils import model_meta
+from concurrent.futures import ThreadPoolExecutor
 from base.serializers import ModelInterfaceSerializer, EnvInterfaceSerializer
 from users.serializers import UerModelSerializers
 from .utils import generate_data,generate_randint, \
     generate_strings,generate_timestamp,generate_uuid
+
+from .models import ApiManagerment, ApiParams, AllHeaders, ApiResponse, \
+    Headers,CustomParameters, ApiMock, CaseManagerment,CaseApi, CaseGroup, \
+    CaseApiResponse, CaseStepHeaders, CaseStepParams, CheckResult, \
+    CaseReport, ExtractResult, CustomFunc
+
+
+class CustomFuncSerializer(serializers.ModelSerializer):
+    """
+    自定义函数
+    """
+    class Meta:
+        model = CustomFunc
+        fields = ['id','fileName', 'content']
+        read_only_fields = ['funcResult', ]
 
 
 class HeaderTempDeserializer(serializers.ModelSerializer):
@@ -244,7 +256,6 @@ class ApiResponseSerializer(serializers.ModelSerializer):
         return data
 
 
-
 class ApiManagermentSerializer(serializers.ModelSerializer):
     """
     接口管理序列化,返回给客户的数据，不需要校验
@@ -272,8 +283,6 @@ class ApiManagermentSerializer(serializers.ModelSerializer):
     #     if apir:
     #         aipresp_json = ApiResponseSerializer(apir, many=True, context={'request': self.context['request']}).data
     #     return aipresp_json
-
-
 
     class Meta:
         model = ApiManagerment
@@ -425,12 +434,125 @@ class CaseSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class CaseDeserializer(serializers.ModelSerializer):
+    """
+    用例反序列化
+    """
+    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    m_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+
+    class Meta:
+        model = CaseManagerment
+        exclude = ('case_result',)
+
+
+class CaseGroupSerializer1(serializers.ModelSerializer):
+    """
+    分组序列化二级分组
+    """
+    class Meta:
+        model = CaseGroup
+        fields = '__all__'
+
+
 class CaseGroupSerializer(serializers.ModelSerializer):
     """
     分组序列化
     """
+    groups = CaseGroupSerializer1(many=True)
+
     class Meta:
         model = CaseGroup
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        level = data['level']
+        # if level == 2:
+        #     data = None
+        # print(data)
+        return data
+
+
+
+class CaseGroupDserializer(serializers.ModelSerializer):
+    """
+    分组序反列化
+    """
+
+    class Meta:
+        model = CaseGroup
+        fields = '__all__'
+
+
+class CaseStepHeadersSerializer(serializers.ModelSerializer):
+    """
+    用例接口header序列化
+    """
+    # create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    # m_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+
+    class Meta:
+        model = CaseStepHeaders
+        fields = ('id','name', 'value')
+
+
+class CaseStepParamsSerializer(serializers.ModelSerializer):
+    """
+    用例接口Params序列化
+    """
+    # create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    # m_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+
+    class Meta:
+        model = CaseStepParams
+        fields = ('id', 'name', 'value', 'raw')
+
+
+class CheckResultSerializer(serializers.ModelSerializer):
+    """
+    用例接口检查点序列化
+    """
+    # create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    # m_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+
+    class Meta:
+        model = CheckResult
+        # fields = '__all__'
+        exclude = ('case_api', 'create_time', 'm_time')
+
+
+class ExtractResultSerializer(serializers.ModelSerializer):
+    """
+    用例接口检查点序列化
+    """
+    # create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    # m_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+
+    class Meta:
+        model = ExtractResult
+        exclude = ('case_api', 'create_time', 'm_time')
+
+
+class CaseApiResponseSerializer(serializers.ModelSerializer):
+    """
+    用例接口检查点序列化
+    """
+    # create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+
+    class Meta:
+        model = CaseApiResponse
+        fields = '__all__'
+
+
+class CaseReportSerializer(serializers.ModelSerializer):
+    """
+    用例接口检查点序列化
+    """
+    # create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+
+    class Meta:
+        model = CaseReport
         fields = '__all__'
 
 
@@ -438,15 +560,60 @@ class CaseApiSerializer(serializers.ModelSerializer):
     """
     用例接口序列化
     """
+    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    m_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    case_headers = CaseStepHeadersSerializer(many=True)
+    case_paramars = CaseStepParamsSerializer(many=True)
+    case_extract = ExtractResultSerializer(many=True)
+    case_check = CheckResultSerializer(many=True)
+
     class Meta:
         model = CaseApi
-        exclude = ['actual_data', 'extract_result', 'response', 'result_status', 'response_time']
+        fields = (
+            'id', 'case','api','name','url','protocol',
+            'method', 'header_is_check','body_is_check',
+            'status', 'response_time', 'count', 'execution_sequence',
+            'create_time', 'm_time','case_headers', 'case_paramars','case_extract','case_check'
+        )
+
+    def create(self, validated_data):
+        print(validated_data)
+        pass
 
 
 class CaseApiDeserializer(serializers.ModelSerializer):
     """
     用例接口反序列化
     """
+    headers = CaseStepHeadersSerializer(many=True, write_only=True)
+    parameters = CaseStepParamsSerializer(many=True, write_only=True)
+    extract_result = ExtractResultSerializer(many=True, write_only=True)
+    check_result = CheckResultSerializer(many=True, write_only=True)
+
     class Meta:
         model = CaseApi
-        fields = '__all__'
+        fields = (
+            'case', 'api', 'name', 'url', 'protocol',
+            'method', 'header_is_check', 'body_is_check',
+            'execution_sequence', 'headers', 'parameters',
+            'extract_result', 'check_result'
+        )
+
+    def create(self, validated_data):
+        headers = validated_data.pop('headers')
+        parameters = validated_data.pop('parameters')
+        extract_result = validated_data.pop('extract_result')
+        check_result = validated_data.pop('check_result')
+        case_api = CaseApi.objects.create(**validated_data)
+        try:
+            for header in headers:
+                CaseStepHeaders.objects.create(case_api=case_api, **header)
+            for p in parameters:
+                CaseStepParams.objects.create(case_api=case_api, **p)
+            for er in extract_result:
+                ExtractResult.objects.create(case_api=case_api, **er)
+            for cr in check_result:
+                CheckResult.objects.create(case_api=case_api, **cr)
+        except Exception as ex:
+            pass
+        return case_api

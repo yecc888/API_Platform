@@ -3,7 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 
 from rest_framework.response import Response
-import demjson,json,time
+import demjson,json,time,importlib,os
 from rest_framework.throttling import UserRateThrottle,AnonRateThrottle
 from rest_framework.parsers import JSONParser,MultiPartParser,FormParser,BaseParser
 from rest_framework import status
@@ -14,22 +14,116 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.parsers import JSONParser
 from apscheduler.schedulers.background import BackgroundScheduler
 from django_apscheduler.jobstores import DjangoJobStore, register_events, register_job
+from rest_framework.views import APIView
 
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+
+from base.views import BasePagination
+from .filter import ApiFilter,HeaderTempFilter, CustomParaFilter, ApiMockFilter
+from .httpMethods import send
+from .utils import make_custom_file,impt
 from .models import AllHeaders,ApiManagerment,ApiParams, ApiResponse, \
-    Headers,CustomParameters,ApiMock,CaseApi,CaseGroup,CaseManagerment
+    Headers,CustomParameters,ApiMock,CaseApi,CaseGroup,CaseManagerment, CustomFunc
+
 from .serializers import ApiManagermentDeserializer, \
     ApiManagermentSerializer,HeadersSerializer,ParamarsSerializer, \
     HeaderTempDeserializer,HeaderTempSerializer,ApiTestSerializer,CustomParametersSerializer, \
-    ApiMockSerializer, CaseSerializer,CaseApiSerializer,CaseGroupSerializer, CaseApiDeserializer,ApiResponseSerializer
-from base.views import BasePagination
-from .filter import ApiFilter,HeaderTempFilter, CustomParaFilter, ApiMockFilter
-from rest_framework.views import APIView
-from .httpMethods import send
+    ApiMockSerializer, CaseSerializer,CaseApiSerializer,CaseGroupSerializer, \
+    CaseApiDeserializer,ApiResponseSerializer,CaseDeserializer, CaseGroupDserializer,CustomFuncSerializer
+
+
+class CustomFuncViewSet(viewsets.ModelViewSet):
+    """
+    自定义函数
+    list:
+        根据fileName返回查询的数据
+    create:
+        创建
+    """
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    queryset = CustomFunc.objects.all()
+    pagination_class = BasePagination
+    serializer_class = CustomFuncSerializer
+    ordering = ['id']
+
+# def get_object(self):
+    #     obj = self.request.query_params.get('fileName')
+    #     return obj
+    def get_queryset(self):
+        fileName = self.request.query_params.get('fileName')
+        queryset = CustomFunc.objects.filter(fileName=fileName)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+
+        fileName = self.request.query_params.get('fileName')
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            if queryset:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            else:
+                # return Response(data=[f'{fileName},函数文件不存在,请先创建！'])
+                return self.get_paginated_response({f'{fileName},函数文件不存在,请先创建！'})
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class EditCustomFuncViewSet(viewsets.ModelViewSet):
+    """
+    自定义函数
+    put:
+        更新
+    deleter:
+        删除
+    """
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    queryset = CustomFunc.objects.all()
+    pagination_class = BasePagination
+    serializer_class = CustomFuncSerializer
+    ordering = ['id']
+
+
+class DeBugCustomFuncView(APIView):
+    """
+    调试自定义
+    """
+    permission_classes = ()
+    authentication_classes = ()
+
+    def post(self,request):
+        data = dict(request.POST)
+        py_id = int((data.get('fileId')[0]))
+        func_name_or_p = data.get('funName')[0]
+        if not py_id:
+            return Response('请先加载函数文件')
+        if not func_name_or_p:
+            return Response('请输入调试的函数和参数')
+        try:
+            func_data = CustomFunc.objects.get(id=py_id)
+            all_data = CustomFuncSerializer(instance=func_data).data
+            make_custom_file(all_data['fileName'],all_data['content'])
+        except ObjectDoesNotExist as ex:
+            raise
+        # model = all_data['fileName'].rstrip('.py')
+        # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        # pg = os.path.join(BASE_DIR,'customfunc')
+        # mod = importlib.
+        # import_module(model,package=pg)
+        mod = impt(all_data)
+        print(mod)
+
+
+
+
+
 
 
 class InterfaceManagermentViewSet(viewsets.ModelViewSet):
@@ -329,6 +423,13 @@ class CaseViewSet(viewsets.ModelViewSet):
     serializer_class = CaseSerializer
     # filter_class = ApiMockFilter
 
+    def get_serializer_class(self):
+        if self.action in ["list", 'retrieve']:
+            return CaseSerializer
+        elif self.action == "create":
+            return CaseDeserializer
+        return CaseSerializer
+
 
 class CaseGroupViewSet(viewsets.ModelViewSet):
     """
@@ -344,11 +445,23 @@ class CaseGroupViewSet(viewsets.ModelViewSet):
     pagination_class = BasePagination
     permission_classes = (IsAuthenticatedOrReadOnly,)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
-    queryset = CaseGroup.objects.all()
+    # queryset = CaseGroup.objects.all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
     serializer_class = CaseGroupSerializer
-    # filter_class = ApiMockFilter
+
+    def get_serializer_class(self):
+
+        if self.action in ["list", 'retrieve']:
+            return CaseGroupSerializer
+        elif self.action == "create":
+            return CaseGroupDserializer
+        return CaseGroupDserializer
+
+    def get_queryset(self):
+        # 如果已经存在父级，则不展示
+        queryset = CaseGroup.objects.filter(group=None)
+        return queryset
 
 
 class CaseApiViewSet(viewsets.ModelViewSet):
@@ -363,22 +476,25 @@ class CaseApiViewSet(viewsets.ModelViewSet):
         更新用例接口
     """
     pagination_class = BasePagination
-    permission_classes = (IsAuthenticatedOrReadOnly,)
-    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
-    queryset = CaseApi.objects.all()
+    # permission_classes = (IsAuthenticatedOrReadOnly,)
+    # authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
-    # serializer_class = CaseApiSerializer
     throttle_classes = (UserRateThrottle, AnonRateThrottle)
-    # filter_class = ApiMockFilter
-
+    # serializer_class = CaseApiDeserializer
+    queryset = CaseApi.objects.all()
 
     def get_serializer_class(self):
         if self.action in ["list", 'retrieve']:
-            return CaseApiDeserializer
-        elif self.action == "create":
             return CaseApiSerializer
+        elif self.action == "create":
+            return CaseApiDeserializer
         return CaseApiDeserializer
+
+    # def get_queryset(self):
+    #     api_id = self.request.query_params.get('caseId', 0)
+    #     queryset = CaseApi.objects.filter(case_id=int(api_id))
+    #     return queryset
 
 
 

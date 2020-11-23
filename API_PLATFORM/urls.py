@@ -36,7 +36,7 @@ from base.views import EnvsListViewSet, ProjectViewSet, ModelViewSet, ProjectDyn
 from users.views import UserViewSet, obtain_jwt_token1, UserInfoView, UserInfoView1, Logout
 from cases.views import InterfaceManagermentViewSet, HeaderTempViewSet, CustomParametersViewSet, ApiMockViewSet
 from cases.views import SendRequest, MockRuestView, CaseApiViewSet, CaseGroupViewSet, \
-    CaseViewSet,ApiResponseViewSet, GetApiResponseViewSet
+    CaseViewSet,ApiResponseViewSet, GetApiResponseViewSet, CustomFuncViewSet, EditCustomFuncViewSet,DeBugCustomFuncView
 import DjangoUeditor
 from django.conf.urls.static import static
 from API_PLATFORM import settings
@@ -76,10 +76,20 @@ router.register(r'caseGroup', CaseGroupViewSet, base_name='caseGroup')
 router.register(r'caseApi', CaseApiViewSet, base_name='caseApi')
 
 # 接口历史信息配置
-router.register(r'apiHistory', ApiResponseViewSet, base_name='apiHistory')
+# router.register(r'apiHistory', ApiResponseViewSet, base_name='apiHistory')
 
 # 接口历史信息配置
 router.register(r'getApiResp', GetApiResponseViewSet, base_name='getApiResp')
+
+# 添加自定义py函数
+router.register(r'addFunc', CustomFuncViewSet,base_name='addFunc')
+
+# 添加修改自定义py函数
+router.register(r'editFunc', EditCustomFuncViewSet,base_name='editFunc')
+
+
+
+
 
 # 手动配置
 # envs_list = EnvsListViewSet.as_view({
@@ -131,6 +141,7 @@ urlpatterns = [
                                               authentication_form=MyAuthenticationForm), name='login'),
     url(r'accounts/logout/', LogoutView.as_view(), name='logout'),
     url(r'mock/(.*)', MockRuestView.as_view()),
+    url(r'debug/', DeBugCustomFuncView.as_view()),
     #url(r'apiresp/(.*)', GetApiResponseView.as_view()),
 
     # url(r'^admin/', admin.site.urls),

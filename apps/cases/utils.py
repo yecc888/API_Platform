@@ -3,6 +3,21 @@ __date__ = '2020/5/11 18:16'
 
 from urllib.parse import urlencode, quote
 import hashlib,re,random,uuid,time,string
+import os,pathlib,importlib,io
+from pathlib import Path
+
+# 自定义函数文件路径
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+path = os.path.join(BASE_DIR,'customfunc')
+
+
+def make_custom_file(file_name, content):
+    py_file = os.path.join(path, file_name)
+    with open(py_file, 'w+') as f:
+        f.write(content)
+
+
+
 
 def ordered_data(data):
     """
@@ -223,55 +238,96 @@ def get_customParas(args):
     return args.replace('${__','').replace('}','')
 
 
+def impt(all_data):
+    model = all_data['fileName'].rstrip('.py')
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    pg = os.path.join(BASE_DIR,'customfunc')
+    ss = f'customfunc.{model}'
+    mod = importlib.import_module(ss)
+    # mod = importlib.import_module('customfunc.tt')
+    return mod
+
+
+class Dict(dict):
+    __setattr__ = dict.__setitem__
+    __getattr__ = dict.__getitem__
+
+
+def dict_to_object(dictObj):
+    if not isinstance(dictObj,dict):
+        return dictObj
+    inst = Dict()
+    for k, v in dictObj.items():
+        inst[k] = dict_to_object(v)
+    return inst
+
 
 if __name__ == "__main__":
-    ss = {"cno": "1353210023779896", "shop_id": 1905736354, "cashier_id": "1180940478", "consume_amount": 10000,
-          "sub_balance": 0, "sub_credit": 2, "deno_coupon_ids": [], "gift_coupons_ids": [], "payment_amount": 0,
-          "credit_amount": 0, "payment_mode": 1, "count_num": 1, "biz_id": 8036, "table_id": "A023", "tags": ["tt","eeeed"],
-          "products": [{"name": "酸菜鱼", "no": 219830, "num": "1", "price": "2000", "is_activity": 1, "coupons_ids": [],
-                        "tags": ["测试cl"]}]}
-    s0 = {"cno":1113212, "cashier_id":"-1", "shop_id":1706625831, "type":1, "credit":1, "biz_id":9851308882,"remark":"heihei"}
-    d1= {"name":"礼品券测试55555","type":2,"deno_type":1,"coupon_bg":{"logo":"https://welifepublicmedias.oss-cn-beijing.aliyuncs.com/welife-marketing/e1289cdb-97b6-429c-9625-dbaf3d691cfa.jpg", "background":"https://welifepublicmedias.oss-cn-beijing.aliyuncs.com/welife-marketing/0ce5dfc0-5d3b-43ec-8f52-2f1dfd9e9cb5.jpg"},"valid_data":"relative,20,1","creator":1111741635,"enable_amount":50000,"max_use":2,"products":[1342,3243],"mix_use":2,"limit_coupon":[{"couponId":"8890731","name":"10元代金券ymm","aaaar":1121}]}
-    nm = {
-    "coupon_code":"3056952818649102",
-    "cashier_id": -1,
-    "is_verification": "false",
-      "repeal":"false",
-        "from":1
-}
-    s1 = doDatas({},'dp0Rm4wNl6A7q6w1QzcZQstr','b16058ee2fcdfec8f033c1ec0aff200e','2.0','1589160854')
-    s2 = doDatas(nm,'dp0Rm4wNl6A7q6w1QzcZQstr','b16058ee2fcdfec8f033c1ec0aff200e','2.0','1603100246')
-    s3 = doDatas(ss,'dp0Rm4wNl6A7r','b16058ee2fcdfec8f033c1ec0aff200e','2.0','1589160854')
-    s5 = doDatas(d1,'dp0Rm4wNl6A7r','b16058ee2fcdfec8f033c1ec0aff200e','2.0','1589160854')
-    print(s2.sign_data)
+    do=  {
+        "name": "18D_Block",
+        "xcc":{
+            "component": {
+                "core":[99,{"a":2}],
+                "platform":[]
+            },
+        },
+        "uefi":{
+            "component": {
+                "core":[9],
+                "platform":[]
+            },
+        }}
+    to = dict_to_object(do)
+    print(to.xcc.component.core[1])
 
-    m = {
-    "name": "转增测试",
-    "type": 1,
-    "summary": "测试试试",
-    "deno_type": 0,
-    "deno": 18800,
-    "coupon_bg": {
-        "logo": "https://welifepublicmedias.oss-cn-beijing.aliyuncs.com/welife-marketing/e1289cdb-97b6-429c-9625-dbaf3d691cfa.jpg"
-    },
-    "valid_data": "absolute,2020-10-11,2020-12-01",
-    "creator": 1891059688,
-    "shop_list": "ALL",
-    "limit_type": 0,
-    "enable_amount": 5000,
-    "use_week_day": [],
-    "max_use": 2,
-    "products": [111],
-    "use_scope": 1,
-    "give_friend": 0,
-    "mix_use": 1,
-    "limit_coupon": [
-        {
-            "couponId": "8890731",
-            "name": "10元代金券ymm"
-        }
-    ]
-}
+#
+#     ss = {"cno": "1353210023779896", "shop_id": 1905736354, "cashier_id": "1180940478", "consume_amount": 10000,
+#           "sub_balance": 0, "sub_credit": 2, "deno_coupon_ids": [], "gift_coupons_ids": [], "payment_amount": 0,
+#           "credit_amount": 0, "payment_mode": 1, "count_num": 1, "biz_id": 8036, "table_id": "A023", "tags": ["tt","eeeed"],
+#           "products": [{"name": "酸菜鱼", "no": 219830, "num": "1", "price": "2000", "is_activity": 1, "coupons_ids": [],
+#                         "tags": ["测试cl"]}]}
+#     s0 = {"cno":1113212, "cashier_id":"-1", "shop_id":1706625831, "type":1, "credit":1, "biz_id":9851308882,"remark":"heihei"}
+#     d1= {"name":"礼品券测试55555","type":2,"deno_type":1,"coupon_bg":{"logo":"https://welifepublicmedias.oss-cn-beijing.aliyuncs.com/welife-marketing/e1289cdb-97b6-429c-9625-dbaf3d691cfa.jpg", "background":"https://welifepublicmedias.oss-cn-beijing.aliyuncs.com/welife-marketing/0ce5dfc0-5d3b-43ec-8f52-2f1dfd9e9cb5.jpg"},"valid_data":"relative,20,1","creator":1111741635,"enable_amount":50000,"max_use":2,"products":[1342,3243],"mix_use":2,"limit_coupon":[{"couponId":"8890731","name":"10元代金券ymm","aaaar":1121}]}
+#     nm = {
+#     "coupon_code":"3056952818649102",
+#     "cashier_id": -1,
+#     "is_verification": "false",
+#       "repeal":"false",
+#         "from":1
+# }
+#     s1 = doDatas({},'dp0Rm4wNl6A7q6w1QzcZQstr','b16058ee2fcdfec8f033c1ec0aff200e','2.0','1589160854')
+#     s2 = doDatas(nm,'dp0Rm4wNl6A7q6w1QzcZQstr','b16058ee2fcdfec8f033c1ec0aff200e','2.0','1603100246')
+#     s3 = doDatas(ss,'dp0Rm4wNl6A7r','b16058ee2fcdfec8f033c1ec0aff200e','2.0','1589160854')
+#     s5 = doDatas(d1,'dp0Rm4wNl6A7r','b16058ee2fcdfec8f033c1ec0aff200e','2.0','1589160854')
+#     print(s2.sign_data)
+#
+#     m = {
+#     "name": "转增测试",
+#     "type": 1,
+#     "summary": "测试试试",
+#     "deno_type": 0,
+#     "deno": 18800,
+#     "coupon_bg": {
+#         "logo": "https://welifepublicmedias.oss-cn-beijing.aliyuncs.com/welife-marketing/e1289cdb-97b6-429c-9625-dbaf3d691cfa.jpg"
+#     },
+#     "valid_data": "absolute,2020-10-11,2020-12-01",
+#     "creator": 1891059688,
+#     "shop_list": "ALL",
+#     "limit_type": 0,
+#     "enable_amount": 5000,
+#     "use_week_day": [],
+#     "max_use": 2,
+#     "products": [111],
+#     "use_scope": 1,
+#     "give_friend": 0,
+#     "mix_use": 1,
+#     "limit_coupon": [
+#         {
+#             "couponId": "8890731",
+#             "name": "10元代金券ymm"
+#         }
+#     ]
+# }
     # print(ordered_data(ss))
     # s5.join_data()
     # import string
