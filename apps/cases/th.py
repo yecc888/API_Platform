@@ -4,6 +4,7 @@ from threading import current_thread
 import time, random, os,sys,shutil
 import requests,zipfile
 import subprocess
+from hamcrest import *
 
 
 class FastBuild:
@@ -172,57 +173,62 @@ def build():
 
 
 if __name__=="__main__":
-    s = "汉族"
-    b = bytes(s,encoding='utf-8')
-    print(b)
-    m = b'\xe6\xb1\x89\xe6\x97\x8f'
-    p = str(m,encoding='utf8')
-    print(p)
 
+    m = 18>>1
 
-    from jsonpath import jsonpath
-
-     # 如果取不到将返回False # 返回列表，如果取不到将返回False
-
-    js = "{'Date': 'Sat, 07 Nov 2020 03:00:41 GMT', 'Content-Type': 'application/json; charset=utf-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'X-Powered-By': 'PHP/7.1.24', '_requestid': '39325fa60dd927e51', 'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding'}"
-    import json,requests
-    from jsonpath import jsonpath
-
-    dictStr = {"city": "北京", "name": "大猫"}
-    print(json.dumps(dictStr, ensure_ascii=False))
-    book_dict = {
-        "store": {
-            "book": [
-                {"category": "reference",
-                 "author": "Nigel Rees",
-                 "title": "Sayings of the Century",
-                 "price": 8.95
-                 },
-                {"category": "fiction",
-                 "author": "Evelyn Waugh",
-                 "title": "Sword of Honour",
-                 "price": 12.99
-                 },
-                {"category": "fiction",
-                 "author": "Herman Melville",
-                 "title": "Moby Dick",
-                 "isbn": "0-553-21311-3",
-                 "price": 8.99
-                 },
-                {"category": "fiction",
-                 "author": "J. R. R. Tolkien",
-                 "title": "The Lord of the Rings",
-                 "isbn": "0-395-19395-8",
-                 "price": 22.99
-                 }
-            ],
-            "bicycle": {
-                "color": "red",
-                "price": 19.95
-            }
-        }
-    }
-    print(jsonpath(book_dict,'$.store.book[0].price'))
+    print(m)
+    print(9/2)
+    # s = "汉族"
+    # b = bytes(s,encoding='utf-8')
+    # print(b)
+    # m = b'\xe6\xb1\x89\xe6\x97\x8f'
+    # p = str(m,encoding='utf8')
+    # print(p)
+    #
+    #
+    # from jsonpath import jsonpath
+    #
+    #  # 如果取不到将返回False # 返回列表，如果取不到将返回False
+    #
+    # js = "{'Date': 'Sat, 07 Nov 2020 03:00:41 GMT', 'Content-Type': 'application/json; charset=utf-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'X-Powered-By': 'PHP/7.1.24', '_requestid': '39325fa60dd927e51', 'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding'}"
+    # import json,requests
+    # from jsonpath import jsonpath
+    #
+    # dictStr = {"city": "北京", "name": "大猫"}
+    # print(json.dumps(dictStr, ensure_ascii=False))
+    # book_dict = {
+    #     "store": {
+    #         "book": [
+    #             {"category": "reference",
+    #              "author": "Nigel Rees",
+    #              "title": "Sayings of the Century",
+    #              "price": 8.95
+    #              },
+    #             {"category": "fiction",
+    #              "author": "Evelyn Waugh",
+    #              "title": "Sword of Honour",
+    #              "price": 12.99
+    #              },
+    #             {"category": "fiction",
+    #              "author": "Herman Melville",
+    #              "title": "Moby Dick",
+    #              "isbn": "0-553-21311-3",
+    #              "price": 8.99
+    #              },
+    #             {"category": "fiction",
+    #              "author": "J. R. R. Tolkien",
+    #              "title": "The Lord of the Rings",
+    #              "isbn": "0-395-19395-8",
+    #              "price": 22.99
+    #              }
+    #         ],
+    #         "bicycle": {
+    #             "color": "red",
+    #             "price": 19.95
+    #         }
+    #     }
+    # }
+    # print(jsonpath(book_dict,'$.store.book[0].price'))
 
 
 # def task(name):

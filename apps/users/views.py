@@ -45,10 +45,10 @@ class CoustomBackend(ModelBackend):
             if user.check_password(password):
                 return user
         except Exception as e:
-            raise serializers.ValidationError({'username_error_field': "用户名错误！", 'code': -1})
+            raise serializers.ValidationError({'username_error_field': "用户名或密码错误！", 'code': -1})
             return None
         else:
-            raise serializers.ValidationError({'password_error_field': '密码错误！', 'code': -2})
+            raise serializers.ValidationError({'password_error_field': '用户名或密码错误！', 'code': -2})
             return None
 
 

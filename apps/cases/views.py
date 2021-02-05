@@ -8,6 +8,7 @@ from rest_framework.throttling import UserRateThrottle,AnonRateThrottle
 from rest_framework.parsers import JSONParser,MultiPartParser,FormParser,BaseParser
 from rest_framework import status
 from rest_framework import mixins
+from rest_framework.generics import get_object_or_404
 from rest_framework import generics
 from rest_framework import viewsets
 from django.core.exceptions import ObjectDoesNotExist
@@ -23,9 +24,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 
 from base.views import BasePagination
-from .filter import ApiFilter,HeaderTempFilter, CustomParaFilter, ApiMockFilter
+from .filter import ApiFilter,HeaderTempFilter, CustomParaFilter, ApiMockFilter, CaseFilter
 from .httpMethods import send
 from .utils import make_custom_file,impt
+from apps.utils.response import CoustomResponse
 from .models import AllHeaders,ApiManagerment,ApiParams, ApiResponse, \
     Headers,CustomParameters,ApiMock,CaseApi,CaseGroup,CaseManagerment, CustomFunc
 
@@ -119,11 +121,6 @@ class DeBugCustomFuncView(APIView):
         # import_module(model,package=pg)
         mod = impt(all_data)
         print(mod)
-
-
-
-
-
 
 
 class InterfaceManagermentViewSet(viewsets.ModelViewSet):
@@ -421,14 +418,14 @@ class CaseViewSet(viewsets.ModelViewSet):
     ordering_fields = ['create_time', 'name']
     ordering = ['-m_time']
     serializer_class = CaseSerializer
-    # filter_class = ApiMockFilter
+    filter_class = CaseFilter
 
     def get_serializer_class(self):
         if self.action in ["list", 'retrieve']:
             return CaseSerializer
         elif self.action == "create":
             return CaseDeserializer
-        return CaseSerializer
+        return CaseDeserializer
 
 
 class CaseGroupViewSet(viewsets.ModelViewSet):
@@ -463,6 +460,32 @@ class CaseGroupViewSet(viewsets.ModelViewSet):
         queryset = CaseGroup.objects.filter(group=None)
         return queryset
 
+    def destroy(self, request, *args, **kwargs):
+        # instance = self.get_object()
+        queryset = CaseGroup.objects.filter(id=kwargs['pk'])
+        dd = CaseGroup.objects.filter(group_id=kwargs['pk'])
+        # 如果有子分组，不允许删除
+        if dd:
+            return Response(data={'存在子分组，无法删除'})
+        instance = get_object_or_404(queryset)
+        # q = CaseGroup.objects.get(groups=kwargs['pk'])
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CaseGroupUpdateViewSet(viewsets.ModelViewSet):
+    """
+    update:
+        更新用例分组
+    """
+    pagination_class = BasePagination
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    queryset = CaseGroup.objects.all()
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name']
+    serializer_class = CaseGroupDserializer
+
 
 class CaseApiViewSet(viewsets.ModelViewSet):
     """
@@ -477,7 +500,7 @@ class CaseApiViewSet(viewsets.ModelViewSet):
     """
     pagination_class = BasePagination
     # permission_classes = (IsAuthenticatedOrReadOnly,)
-    # authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
     throttle_classes = (UserRateThrottle, AnonRateThrottle)
@@ -495,6 +518,33 @@ class CaseApiViewSet(viewsets.ModelViewSet):
     #     api_id = self.request.query_params.get('caseId', 0)
     #     queryset = CaseApi.objects.filter(case_id=int(api_id))
     #     return queryset
+
+
+class CasesByGroupId(APIView):
+    """
+    获取分组下的用例
+    """
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+
+    def get(self,request):
+        group_dict = {}
+        for key, value in request.GET.items():
+            group_dict[key] = value
+        groupId = group_dict['groupId']
+        if not groupId:
+            return CoustomResponse(msg='参数错误')
+        if not groupId.isdecimal():
+            return CoustomResponse(msg='参数错误')
+        try:
+            queryset = CaseManagerment.objects.filter(case_group_id=groupId).order_by('-create_time')
+            count = queryset.count()
+            data = CaseSerializer(queryset,many=True).data
+            return CoustomResponse(count=count,data=data)
+        except ObjectDoesNotExist as ex:
+            return Response(data={'无用例'})
+
+
 
 
 
