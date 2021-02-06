@@ -7,7 +7,7 @@ import datetime,time
 import multiprocessing
 import re
 from API_PLATFORM.settings import REGEX_MOBILE
-from db_tools.wsgData import doExcel
+from db_tools.wsgData import doExcel,shops,users,users1,all_users
 
 def pase():
     conn = psycopg2.connect(database='yxd-test', user='postgres',
@@ -164,8 +164,132 @@ def com_shop(shopname):
     return count
 
 
+def single():
+    conn = psycopg2.connect(database='ztt', user='postgres',
+                            password='wsg@pg#', host='123.57.63.39', port='5432')
+    cur = conn.cursor()
+    sql = "SELECT account,phone from users where name in ('叶店长','刘总经理')"
+    cur.execute(sql)
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [da[0] for da in data]
 
 
+def all():
+    conn = psycopg2.connect(database='ztt', user='postgres',
+                            password='wsg@pg#', host='123.57.63.39', port='5432')
+    cur = conn.cursor()
+    sql = "SELECT account,phone from users where name in ('叶店长','刘总经理')"
+    cur.execute(sql)
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data
+
+
+def generate_shop(TaskAssItemfile,area):
+    conn = psycopg2.connect(database='ztt', user='postgres',
+                            password='wsg@pg#', host='123.57.63.39', port='5432')
+    cur = conn.cursor()
+    for da in shops(TaskAssItemfile,area):
+        id = da[4]
+        number2 = da[0]
+        name2 = da[1]
+        area_name = da[2]
+        area_id = da[3]
+        s = datetime.datetime.now().date()
+        times = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+
+        data2 = "INSERT INTO store VALUES (%(id)s, %(number2)s, " \
+                "%(name2)s, 1297046340215312399, %(area_id)s, 440500, '中关村', '116.397128', '39.916527', " \
+                "NULL, NULL, NULL, NULL, NULL, NULL, '2020-09-24', '2023-09-24', 2, '2021-01-12 15:04:34+08', " \
+                "NULL,'2021-01-12 15:04:34+08', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '沪上阿姨', " \
+                "%(area_name)s, '汕头市', NULL, NULL, NULL, NULL, NULL, '全部门店', '440000', '广东省', NULL, NULL, " \
+                "'919a2a4b-0ce6-4f25-902d-0a210f57898e', NULL, NULL, NULL, NULL, NULL, NULL)"
+
+
+        da = "INSERT INTO store VALUES (1303529746939842581, 'shop112', '上海新天地店', 1297046340215312386, 1303529364821970945, 540300, '新天地1号', '116.397128', '39.916527', NULL, NULL, NULL, '13:49', NULL, NULL, '2020-09-09', '2023-09-09', 2, '2020-09-09 11:04:44+08', NULL, '2021-01-12 15:04:34+08', 1296387022541361153, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '肯德基', '上海大区', '昌都市', NULL, 'admin', NULL, '13:49', NULL, '全部门店', '540000', '西藏自治区', NULL, NULL, '917c123c-0f78-45f3-b61b-c0d17135c739', NULL, '20574786a2a5448a9daa412ad50798c9', 'Real', 1, 'ra.a1bmnn9i6pywd28a9ik3cw8abxstc3bd-4n6774c7t4-1cp5qxv-u1kbfyqi4', '1611207557768')"
+        cur.execute(data2,{'id': id, 'number2':number2,
+                           'name2': name2,
+                           'area_id': area_id,
+                           'area_name':area_name})
+        # cur.execute(da)
+        conn.commit()
+    cur.close()
+    conn.close()
+
+def task_store():
+
+    conn = psycopg2.connect(database='test', user='postgres',
+                            password='wsg@pg#', host='123.57.63.39', port='5432')
+    cur = conn.cursor()
+    sql = "select id,name from store where brand_id='1297046340215312399'"
+    cur.execute(sql)
+    data = cur.fetchall()
+    id = 2555076525803769858
+    #1351798791996510209  1351807203929030658  1351798383840399362 1351805839526133761 1355018663857557506
+    lists = [1351798791996510209,1351807203929030658,1351798383840399362,1351805839526133761,1355018663857557506]
+    sql1 = "INSERT INTO task_template_store VALUES (%(id)s, %(tem)s, %(shop)s, 1, '2021-01-29 16:53:14+08', 1296387022541361153, '2021-01-29 16:53:14+08', 1296387022541361153, %(name)s)"
+    for tem in lists:
+        id +=10000
+        for item in data:
+            shop = item[0]
+            name = item[1]
+            cur.execute(sql1, {'id': id, 'tem':tem,'shop': shop,
+                                'name': name})
+            conn.commit()
+            id+=1
+    cur.close()
+    conn.close()
+
+
+def do_area():
+
+    conn = psycopg2.connect(database='xiabu', user='postgres',
+                            password='wsg@pg#', host='47.93.99.61', port='5432')
+    cur = conn.cursor()
+    sql1 = "select name,id from area where name not in ('总部','呷哺呷哺餐饮管理（上海）有限公司默认区域')"
+    cur.execute(sql1)
+    data = cur.fetchall()
+    data_dict = dict(data)
+
+
+    sql2 = "select area_name from store where area_name <>'呷哺呷哺餐饮管理（上海）有限公司默认区域'"
+    cur.execute(sql2)
+    data2 = cur.fetchall()
+    data2 = [x[0] for x in data2]
+
+    sql = "UPDATE store set area_id=%(area_id)s where area_name=%(area_name)s"
+
+    for d in data2:
+        if d in data_dict.keys():
+            cur.execute(sql, {'area_id': data_dict[d],'area_name': d})
+        conn.commit()
+    cur.close()
+    conn.close()
+
+
+
+
+
+
+def generate_tags():
+    conn = psycopg2.connect(database='ztt', user='postgres',
+                            password='wsg@pg#', host='123.57.63.39', port='5432')
+    cur = conn.cursor()
+
+    sql = "INSERT INTO store_circle VALUES (%(id)s, 1351710720282132481, %(storeid)s, 1, NULL, 1296387022541361153, NULL, 1296387022541361153, NULL, NULL)"
+
+
+    shopid = []
+    id = 1951816182734393713
+    for i in shopid:
+        cur.execute(sql, {'id': id, 'storeid': i})
+        id+=1
+        conn.commit()
+    cur.close()
+    conn.close()
 
 
 
@@ -211,6 +335,19 @@ def run_job():
     t2.join()
 
 
+def dolist(nums):
+    res = []
+    size = len(nums)
+    for i in range(size):
+        num = abs(nums[i])
+        index = num - 1
+        if nums[index] > 0:
+            nums[index] *=-1
+    for j in range(size):
+        if nums[j]>0:
+            num = j+1
+            res.append(num)
+    return res
 
 if __name__ == "__main__":
     # print(re.match(REGEX_MOBILE,'13584444664'))
@@ -224,13 +361,22 @@ if __name__ == "__main__":
     #     connect_pg(ids,random.randint(1,3))
     #     connect_pg1(ids1,random.randint(1,3))
     fiels = 'C:\\Users\Administrator\Desktop\data5.xlsx'
+    TaskAssItemfile = 'E:\loadtest\\aishop\\allusers.xlsx'
+    shopfile = 'E:\loadtest\\aishop\\area.xlsx'
+    # area = shops(shopfile)
+    strs = ["flower", "flow", "flight"]
+    print(dolist([1,2,3,4,6,6,6]))
+    task_store()
+    # generate_shop(TaskAssItemfile,area)
+    # doShop()
+    # for i in shops(TaskAssItemfile,area):
+    #     print(i)
     # e = doExcel(fiels,'Sheet1')
     # s = e.read_from_excel()
-
     # generate_rule(fiels,'tangshi')
     # generate_rule(fiels,'waimai')
     # generate_rule(fiels,'huiyuan')
     # delt = (datetime.datetime.now()-statrt_time).seconds
     # print(delt)
-    upper_level('符史豪', '奥体东门')
+    # upper_level('符史豪', '奥体东门')
 

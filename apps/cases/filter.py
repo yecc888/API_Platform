@@ -3,13 +3,13 @@ __date__ = '2020/5/4 16:23'
 
 import django_filters
 
-from .models import ApiManagerment,Headers, CustomParameters, ApiMock
+from .models import ApiManagerment,Headers, CustomParameters, ApiMock,CaseManagerment,CaseGroup
 from base.models import ModelManager
 
 
 class ApiFilter(django_filters.rest_framework.FilterSet):
     """
-    环境名称过滤
+    接口过滤
     contains：模糊过滤，icontains:忽略大小写
     """
     model__name = django_filters.CharFilter(method='filter_model')
@@ -27,7 +27,7 @@ class ApiFilter(django_filters.rest_framework.FilterSet):
 
 class HeaderTempFilter(django_filters.rest_framework.FilterSet):
     """
-    环境名称过滤
+    请求头模板过滤
     contains：模糊过滤，icontains:忽略大小写
     """
     value = django_filters.CharFilter(field_name='value', lookup_expr='icontains')
@@ -61,3 +61,22 @@ class ApiMockFilter(django_filters.rest_framework.FilterSet):
     class Meta:
         model = ApiMock
         fields = ['url', 'name', 'status']
+
+
+class CaseFilter(django_filters.rest_framework.FilterSet):
+    """
+    mock接口参数过滤
+    """
+    caseType = django_filters.CharFilter(field_name='caseType', lookup_expr='icontains')
+    name = django_filters.CharFilter(field_name='name', lookup_expr='icontains')
+    caseStatus = django_filters.NumberFilter(field_name='caseStatus', lookup_expr='icontains')
+    caseLevel = django_filters.NumberFilter(field_name='caseLevel', lookup_expr='icontains')
+    case_group = django_filters.NumberFilter(field_name='case_group')
+
+    def filter_case_group(self, queryset, name, value):
+        q = CaseGroup.objects.filter(id=value)
+        return queryset.filter(case_group_id=q)
+
+    class Meta:
+        model = CaseManagerment
+        fields = ['name', 'caseStatus','caseType','caseLevel','case_group']

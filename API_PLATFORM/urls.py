@@ -36,7 +36,8 @@ from base.views import EnvsListViewSet, ProjectViewSet, ModelViewSet, ProjectDyn
 from users.views import UserViewSet, obtain_jwt_token1, UserInfoView, UserInfoView1, Logout
 from cases.views import InterfaceManagermentViewSet, HeaderTempViewSet, CustomParametersViewSet, ApiMockViewSet
 from cases.views import SendRequest, MockRuestView, CaseApiViewSet, CaseGroupViewSet, \
-    CaseViewSet,ApiResponseViewSet, GetApiResponseViewSet, CustomFuncViewSet, EditCustomFuncViewSet,DeBugCustomFuncView
+    CaseViewSet,ApiResponseViewSet, GetApiResponseViewSet, CustomFuncViewSet, \
+    EditCustomFuncViewSet,DeBugCustomFuncView,CaseGroupUpdateViewSet,CasesByGroupId
 import DjangoUeditor
 from django.conf.urls.static import static
 from API_PLATFORM import settings
@@ -71,6 +72,14 @@ router.register(r'case', CaseViewSet, base_name='case')
 
 # 用例分组配置
 router.register(r'caseGroup', CaseGroupViewSet, base_name='caseGroup')
+
+# 用例分组更新
+router.register(r'updateCaseGroup', CaseGroupUpdateViewSet, base_name='caseGroupUpdata')
+
+# 获取用例分组
+router.register(r'getCaseGroup', CaseGroupUpdateViewSet, base_name='getCaseGroup')
+
+
 
 # 用例接口配置
 router.register(r'caseApi', CaseApiViewSet, base_name='caseApi')
@@ -142,6 +151,7 @@ urlpatterns = [
     url(r'accounts/logout/', LogoutView.as_view(), name='logout'),
     url(r'mock/(.*)', MockRuestView.as_view()),
     url(r'debug/', DeBugCustomFuncView.as_view()),
+    url(r'getCasesByGroupId/', CasesByGroupId.as_view()),
     #url(r'apiresp/(.*)', GetApiResponseView.as_view()),
 
     # url(r'^admin/', admin.site.urls),

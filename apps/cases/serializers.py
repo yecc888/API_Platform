@@ -428,6 +428,7 @@ class CaseSerializer(serializers.ModelSerializer):
     """
     create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
     m_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_user = UerModelSerializers()
 
     class Meta:
         model = CaseManagerment
@@ -438,18 +439,33 @@ class CaseDeserializer(serializers.ModelSerializer):
     """
     用例反序列化
     """
+
     create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
     m_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = CaseManagerment
         exclude = ('case_result',)
 
 
-class CaseGroupSerializer1(serializers.ModelSerializer):
+class CaseGroupDserializer1(serializers.ModelSerializer):
+    """
+    分组序反列化
+    """
+    class Meta:
+        model = CaseGroup
+        fields = '__all__'
+
+
+
+class CaseGroupSerializer2(serializers.ModelSerializer):
     """
     分组序列化二级分组
     """
+
+    groups = CaseGroupDserializer1(many=True)
+
     class Meta:
         model = CaseGroup
         fields = '__all__'
@@ -459,7 +475,7 @@ class CaseGroupSerializer(serializers.ModelSerializer):
     """
     分组序列化
     """
-    groups = CaseGroupSerializer1(many=True)
+    groups = CaseGroupSerializer2(many=True)
 
     class Meta:
         model = CaseGroup
@@ -479,10 +495,11 @@ class CaseGroupDserializer(serializers.ModelSerializer):
     """
     分组序反列化
     """
+    name = serializers.CharField(required=True)
 
     class Meta:
         model = CaseGroup
-        fields = '__all__'
+        fields = ('id','name','group','level')
 
 
 class CaseStepHeadersSerializer(serializers.ModelSerializer):
